@@ -9,7 +9,7 @@ import numpy as np
 from scipy.stats import poisson, gamma
 
 class MicrodosimetricGammaModel:
-    def __init__(self, name, pars=None):
+    def __init__(self, pars=None):
         self._BDD = None
         self._BDD_pars = None
         self._BDI = None
@@ -26,7 +26,6 @@ class MicrodosimetricGammaModel:
         self._gamma_par1_pars = None
         self._gamma_par2 = None
         self._gamma_par2_pars = None
-        self.Model = name
         self.SetFunctionsAndParameters(pars)
 
     def getBD(self, yF):
