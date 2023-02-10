@@ -10,79 +10,101 @@ from scipy.stats import poisson, gamma
 
 class MicrodosimetricGammaModel:
     def __init__(self, name, pars=None):
+        self._BDD = None
+        self._BDD_pars = None
+        self._BDI = None
+        self._BDI_pars = None
+        self._SBD = None
+        self._SBD_pars = None
+        self._SBI = None
+        self._SBI_pars = None
+        self._N_sites = None
+        self._N_sites_pars = None
+        self._N_sites_with_DSB = None
+        self._N_sites_with_DSB_pars = None
+        self._gamma_par1 = None
+        self._gamma_par1_pars = None
+        self._gamma_par2 = None
+        self._gamma_par2_pars = None
         self.Model = name
         self.SetFunctionsAndParameters(pars)
 
+    def getBD(self, yF):
+        return self.getBDD(yF) + self.getBDI(yF)
+
+    def getSB(self, yF):
+        return self.getSBD(yF) + self.getSBI(yF)
+
     def getBDD(self, yF):
-        return self.BDD(yF, *self.BDD_pars)
+        return self._BDD(yF, *self.BDD_pars)
 
     def getBDI(self, yF):
-        return self.BDI(yF, *self.BDI_pars)
+        return self._BDI(yF, *self.BDI_pars)
 
     def getSBD(self, yF):
-        return self.SBD(yF, *self.SBD_pars)
+        return self._SBD(yF, *self.SBD_pars)
 
     def getSBI(self, yF):
-        return self.SBI(yF, *self.SBI_pars)
+        return self._SBI(yF, *self.SBI_pars)
 
     def getN_sites(self, yF):
-        return self.N_sites(yF, *self.N_sites_pars)
+        return self._N_sites(yF, *self.N_sites_pars)
 
     def getN_sites_with_DSB(self, yF):
-        return self.N_sites_with_DSB(yF, *self.N_sites_with_DSB_pars)
+        return self._N_sites_with_DSB(yF, *self.N_sites_with_DSB_pars)
 
     def getGamma_par1(self, yF):
-        return self.gamma_par1(yF, *self.gamma_par1_pars)
+        return self._gamma_par1(yF, *self.gamma_par1_pars)
 
     def getGamma_par2(self, yF):
-        return self.gamma_par2(yF, *self.gamma_par2_pars)
+        return self._gamma_par2(yF, *self.gamma_par2_pars)
 
-    def getGamma(self, yF):
+    def getComplexityDistribution(self, yF):
         return self.gamma_func(yF, self.getGamma_par1(yF), self.getGamma_par2(yF))
 
     def SetFunctionsAndParameters(self, pars=None):
         if pars is None:
-            self.BDD = self.linear_func
-            self.BDD_pars = np.array([1.15261696])
-            self.BDI = self.exp_func
-            self.BDI_pars = np.array([9.24573603e+02, 4.20536461e-03])
-            self.SBD = self.linear_func
-            self.SBD_pars = np.array([0.96784241])
-            self.SBI = self.exp_func
-            self.SBI_pars = np.array([1.52868524e+02, 8.72750460e-03])
-            self.N_sites = self.linear_plus_exp_func
-            self.N_sites_pars = np.array([4.20443273e-01, 5.67814904e+02, 1.04384649e-02])
-            self.N_sites_with_DSB = self.linquad_func
-            self.N_sites_with_DSB_pars = np.array([0.13781355, 0.00060011])
-            self.gamma_par1 = self.quadratic_func
-            self.gamma_par1_pars = np.array([8.65049809e-05, 5.65761513e-03, 1.35721323e+00])
-            self.gamma_par2 = self.quadratic_func
-            self.gamma_par2_pars = np.array([-6.62740411e-05,  1.15279062e-03,  1.55850260e+00])
+            self._BDD = self.linear_func
+            self._BDD_pars = np.array([1.15261696])
+            self._BDI = self.exp_func
+            self._BDI_pars = np.array([9.24573603e+02, 4.20536461e-03])
+            self._SBD = self.linear_func
+            self._SBD_pars = np.array([0.96784241])
+            self._SBI = self.exp_func
+            self._SBI_pars = np.array([1.52868524e+02, 8.72750460e-03])
+            self._N_sites = self.linear_plus_exp_func
+            self._N_sites_pars = np.array([4.20443273e-01, 5.67814904e+02, 1.04384649e-02])
+            self._N_sites_with_DSB = self.linquad_func
+            self._N_sites_with_DSB_pars = np.array([0.13781355, 0.00060011])
+            self._gamma_par1 = self.quadratic_func
+            self._gamma_par1_pars = np.array([8.65049809e-05, 5.65761513e-03, 1.35721323e+00])
+            self._gamma_par2 = self.quadratic_func
+            self._gamma_par2_pars = np.array([-6.62740411e-05,  1.15279062e-03,  1.55850260e+00])
         else:
             if 'BDD' in pars:
-                self.BDD = pars['BDD'][0]
-                self.BDD_pars = pars['BDD'][1]
+                self._BDD = pars['BDD'][0]
+                self._BDD_pars = pars['BDD'][1]
             if 'BDI' in pars:
-                self.BDI = pars['BDI'][0]
-                self.BDI_pars = pars['BDI'][1]
+                self._BDI = pars['BDI'][0]
+                self._BDI_pars = pars['BDI'][1]
             if 'SBD' in pars:
-                self.SBD = pars['SBD'][0]
-                self.SBD_pars = pars['SBD'][1]
+                self._SBD = pars['SBD'][0]
+                self._SBD_pars = pars['SBD'][1]
             if 'SBI' in pars:
-                self.SBI = pars['SBI'][0]
-                self.SBI_pars = pars['SBI'][1]
+                self._SBI = pars['SBI'][0]
+                self._SBI_pars = pars['SBI'][1]
             if 'N_sites' in pars:
-                self.N_sites = pars['N_sites'][0]
-                self.N_sites_pars = pars['N_sites'][1]
+                self._N_sites = pars['N_sites'][0]
+                self._N_sites_pars = pars['N_sites'][1]
             if 'N_sites_with_DSB' in pars:
-                self.N_sites_with_DSB = pars['N_sites_with_DSB'][0]
-                self.N_sites_with_DSB_pars = pars['N_sites_with_DSB'][1]
+                self._N_sites_with_DSB = pars['N_sites_with_DSB'][0]
+                self._N_sites_with_DSB_pars = pars['N_sites_with_DSB'][1]
             if 'gamma_par1' in pars:
-                self.gamma_par1 = pars['gamma_par1'][0]
-                self.gamma_par1_pars = pars['gamma_par1'][1]
+                self._gamma_par1 = pars['gamma_par1'][0]
+                self._gamma_par1_pars = pars['gamma_par1'][1]
             if 'gamma_par2' in pars:
-                self.gamma_par2 = pars['gamma_par2'][0]
-                self.gamma_par2_pars = pars['gamma_par2'][1]
+                self._gamma_par2 = pars['gamma_par2'][0]
+                self._gamma_par2_pars = pars['gamma_par2'][1]
 
 
     @staticmethod
