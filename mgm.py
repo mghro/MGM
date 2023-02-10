@@ -35,28 +35,28 @@ class MicrodosimetricGammaModel:
         return self.getSBD(yF) + self.getSBI(yF)
 
     def getBDD(self, yF):
-        return self._BDD(yF, *self.BDD_pars)
+        return self._BDD(yF, *self._BDD_pars)
 
     def getBDI(self, yF):
-        return self._BDI(yF, *self.BDI_pars)
+        return self._BDI(yF, *self._BDI_pars)
 
     def getSBD(self, yF):
-        return self._SBD(yF, *self.SBD_pars)
+        return self._SBD(yF, *self._SBD_pars)
 
     def getSBI(self, yF):
-        return self._SBI(yF, *self.SBI_pars)
+        return self._SBI(yF, *self._SBI_pars)
 
     def getN_sites(self, yF):
-        return self._N_sites(yF, *self.N_sites_pars)
+        return self._N_sites(yF, *self._N_sites_pars)
 
     def getN_sites_with_DSB(self, yF):
-        return self._N_sites_with_DSB(yF, *self.N_sites_with_DSB_pars)
+        return self._N_sites_with_DSB(yF, *self._N_sites_with_DSB_pars)
 
     def getGamma_par1(self, yF):
-        return self._gamma_par1(yF, *self.gamma_par1_pars)
+        return self._gamma_par1(yF, *self._gamma_par1_pars)
 
     def getGamma_par2(self, yF):
-        return self._gamma_par2(yF, *self.gamma_par2_pars)
+        return self._gamma_par2(yF, *self._gamma_par2_pars)
 
     def getComplexityDistribution(self, yF):
         return self.gamma_func(yF, self.getGamma_par1(yF), self.getGamma_par2(yF))
