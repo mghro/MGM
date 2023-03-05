@@ -6,6 +6,7 @@ Created on 2/10/23 3:39 PM
 @author: alejandrobertolet
 """
 import numpy as np
+import matplotlib.pyplot as plt
 from scipy.stats import poisson, gamma
 
 class MicrodosimetricGammaModel:
@@ -59,7 +60,8 @@ class MicrodosimetricGammaModel:
         return self._gamma_par2(yF, *self._gamma_par2_pars)
 
     def getComplexityDistribution(self, yF):
-        return self.gamma_func(yF, self.getGamma_par1(yF), self.getGamma_par2(yF))
+        complexities = np.arange(2, 16)
+        return self.gamma_func(complexities, self.getGamma_par1(yF), self.getGamma_par2(yF))
 
     def SetFunctionsAndParameters(self, pars=None):
         if pars is None:
@@ -155,4 +157,194 @@ class MicrodosimetricGammaModel:
         return lambda_poisson, lambda_compound
 
 
+class MicrodosimetryGammaCalculator:
+    def __init__(self, spectrum_filename, format='list', subsample=None):
+        self.mgm = MicrodosimetricGammaModel()
+        self.reader = MicrodosimetryReader(spectrum_filename, format, subsample)
+
+    def CalculateDamage(self):
+        # Calculate the total number of sites
+        self.nsites = np.sum(self.mgm.getN_sites_with_DSB(self.reader.lineal_energy))
+
+        # Calculate the complexity distribution
+        self.complexities = np.arange(2, 16)
+        self.complexitydist = np.sum(
+            [self.mgm.getComplexityDistribution(yvalue) for yvalue in self.reader.lineal_energy], axis=0)
+
+    def getComplexityDistribution(self):
+        return self.complexities, self.complexitydist
+
+    def getNumberOfSitesWithDSB(self, perTrack=True):
+        if perTrack:
+            return self.nsites / len(self.reader.lineal_energy)
+        return self.nsites
+
+    def PlotComplexityDistribution(self, density=False):
+        if density:
+            complexitydist = self.complexitydist / np.sum(self.complexitydist)
+        else:
+            complexitydist = self.complexitydist
+        fig, ax = plt.subplots(1, 1, figsize=(8, 6))
+        ax.bar(self.complexities, complexitydist, width=0.5, color='blue', edgecolor='black', alpha=0.5)
+        ax.set_xlabel('Complexity')
+        ax.set_ylabel('Probability density')
+        possible_values = np.array([i for i in np.arange(2, 16, 1)])
+        ax.set_xticks(possible_values)
+        ax.set_xlim(1.5, 16.5)
+        ax.grid(linestyle='--', linewidth=0.5, alpha=0.7)
+        plt.draw()
+        plt.show()
+        return fig, ax
+
+    def DistributeDamageOverNucleus(self, dose, radius, inTracks=True, allParallel=False):
+        '''Distribute damage over the nucleus.
+        Returns a list of damage sites, containing position and complexity.
+        If the parameter inTracks is true, then the damage is distributed in straight lines (as
+        many as original tracks we have)'''
+        self.radius = radius
+        dosepertrack = np.mean(self._getZ(self.reader.lineal_energy, radius))
+        totalsites = self.getNumberOfSitesWithDSB(perTrack=True) * dose / dosepertrack
+        self.damages = []
+        if inTracks:
+            nTracks = int(np.round(dose/dosepertrack))
+            # Sample straight lines crossing the nucleus and get length for each one of them in the nucleus
+            lengths = np.zeros(nTracks)
+            trackinitialpoints = np.zeros((nTracks, 3))
+            trackdirections = np.zeros((nTracks, 3))
+            for i in range(nTracks):
+                # Randomly choose a position within the nucleus
+                r = np.random.uniform(0, radius)
+                theta = np.random.uniform(0, 2 * np.pi)
+                phi = np.random.uniform(0, np.pi)
+                x = r * np.sin(phi) * np.cos(theta)
+                y = r * np.sin(phi) * np.sin(theta)
+                z = r * np.cos(phi)
+                # Randomly choose a direction. If all parallel is True, all tracks will be parallel
+                theta = np.random.uniform(0, 2 * np.pi)
+                phi = np.random.uniform(0, np.pi)
+                if allParallel:
+                    phi = 0
+                dx = np.sin(phi) * np.cos(theta)
+                dy = np.sin(phi) * np.sin(theta)
+                dz = np.cos(phi)
+                # Calculate the length of the track in the nucleus
+                lengths[i], distancetoinitialpoint = self._getTrackLength(x, y, z, dx, dy, dz, radius)
+                trackinitialpoints[i, :] = np.array([x, y, z]) + distancetoinitialpoint * np.array([dx, dy, dz])
+                trackdirections[i, :] = np.array([dx, dy, dz])
+            # Assign the number of damages depending on each track length
+            shareofdamagepertrack = totalsites * lengths / np.sum(lengths)
+            ndamagesPerTrack = np.zeros(nTracks)
+            remainingsites = totalsites
+            for itrack in range(nTracks):
+                while remainingsites > 0 and shareofdamagepertrack[itrack] > 0:
+                    ndamagesPerTrack[itrack] += 1
+                    shareofdamagepertrack[itrack] -= 1
+                    remainingsites -= 1
+
+            # Fill track by track according to the number of damages per track
+            for j in range(nTracks):
+                while ndamagesPerTrack[j] > 0:
+                    # Randomly choose a position within the track
+                    r = np.random.uniform(0, lengths[j])
+                    x = trackinitialpoints[j, 0] + r * trackdirections[j, 0]
+                    y = trackinitialpoints[j, 1] + r * trackdirections[j, 1]
+                    z = trackinitialpoints[j, 2] + r * trackdirections[j, 2]
+                    # Randomly choose a complexity
+                    complexity = np.random.choice(self.complexities, p=self.complexitydist / np.sum(self.complexitydist))
+                    self.damages.append([(x, y, z), complexity])
+                    ndamagesPerTrack[j] -= 1
+        else:
+            for i in range(int(totalsites)):
+                # Randomly choose a position within the nucleus
+                r = np.random.uniform(0, radius)
+                theta = np.random.uniform(0, 2 * np.pi)
+                phi = np.random.uniform(0, np.pi)
+                x = r * np.sin(phi) * np.cos(theta)
+                y = r * np.sin(phi) * np.sin(theta)
+                z = r * np.cos(phi)
+                # Randomly choose a complexity
+                complexity = np.random.choice(self.complexities, p=self.complexitydist / np.sum(self.complexitydist))
+                self.damages.append([(x, y, z), complexity])
+        return self.damages
+
+    def PlotDistributedDamageOverNucleus(self):
+        positions = np.array([d[0] for d in self.damages])
+        # Plot 3D the positions in a sphere
+        fig = plt.figure()
+        ax = fig.add_subplot(111, projection='3d')
+        ax.scatter(positions[:, 0], positions[:, 1], positions[:, 2])
+        # Show a sphere with the radius of the nucleus
+        u, v = np.mgrid[0:2 * np.pi:20j, 0:np.pi:10j]
+        x = self.radius * np.cos(u) * np.sin(v)
+        y = self.radius * np.sin(u) * np.sin(v)
+        z = self.radius * np.cos(v)
+        ax.plot_wireframe(x, y, z, color="k", alpha=0.05)
+        plt.show()
+
+    def _getZ(self, y, radius):
+        e = 1.602176634e-19
+        yKeVum = y * e * 1e9
+        rho = 997  # kg/m^3
+        radiusM = radius * 1e-6
+        return yKeVum / (rho * np.pi * radiusM**2)
+
+    def _getTrackLength(self, x, y, z, dx, dy, dz, radius):
+        # Calculate the intersection of the track with the sphere
+        a = dx**2 + dy**2 + dz**2
+        b = 2 * (x * dx + y * dy + z * dz)
+        c = x**2 + y**2 + z**2 - radius**2
+        discriminant = b**2 - 4 * a * c
+        if discriminant < 0:
+            return 0
+        else:
+            t1 = (-b + np.sqrt(discriminant)) / (2 * a)
+            t2 = (-b - np.sqrt(discriminant)) / (2 * a)
+            return np.abs(t1 - t2), t2
+
+
+class MicrodosimetryReader:
+    def __init__(self, spectrum_filename, format='list', subsample=None):
+        if format == 'microdose':
+            self._read_microdose_spectrum(spectrum_filename, subsample)
+        elif format == 'list':
+            self._read_list_spectrum(spectrum_filename, subsample)
+        elif format == 'bins':
+            self._read_bins_spectrum(spectrum_filename, subsample)
+        self.lineal_energy = np.array(self.lineal_energy)
+
+    def _read_microdose_spectrum(self, spectrum_filename, subsample):
+        # Read in the data from the ASCII file
+        data = np.loadtxt(spectrum_filename)
+        # Separate the columns into arrays
+        self.energy_deposits = np.array(data[:, 0])
+        self.specific_energy = np.array(data[:, 1])
+        self.lineal_energy = data[:, 2]
+        if subsample is not None and subsample > 0:
+            # Generate a random subsample of the data
+            selectedIndexes = np.random.choice(len(self.lineal_energy), subsample, replace=False)
+            self.lineal_energy = self.lineal_energy[selectedIndexes]
+            self.energy_deposits = self.energy_deposits[selectedIndexes]
+            self.specific_energy = self.specific_energy[selectedIndexes]
+
+    def _read_list_spectrum(self, spectrum_filename, subsample):
+        # Read in the data from the ASCII file
+        self.lineal_energy = np.loadtxt(spectrum_filename)
+        if subsample is not None and subsample > 0:
+            # Generate a random subsample of the data
+            selectedIndexes = np.random.choice(len(self.lineal_energy), subsample, replace=False)
+            self.lineal_energy = self.lineal_energy[selectedIndexes]
+
+    def _read_bins_spectrum(self, spectrum_filename, subsample):
+        data = np.loadtxt(spectrum_filename)
+        self.bins = data[:, 0]
+        self.values = data[:, 1]
+        self.lineal_energy = []
+        for i in range(1, len(self.bins)):
+            for j in range(int(self.values[i])):
+                # Appends a value with a random number between the bin edges
+                self.lineal_energy.append(np.random.uniform(self.bins[i-1], self.bins[i]))
+        if subsample is not None and subsample > 0:
+            # Generate a random subsample of the data
+            selectedIndexes = np.random.choice(len(self.lineal_energy), subsample, replace=False)
+            self.lineal_energy = self.lineal_energy[selectedIndexes]
 
