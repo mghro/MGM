@@ -9,7 +9,6 @@ Created on 3/5/23 4:52 PM
 import io, os, sys
 from shutil import rmtree
 
-from distutils.core import setup
 from setuptools import find_packages, setup, Command
 
 # Package meta-data
@@ -86,6 +85,8 @@ setup(
     author_email=EMAIL,
     python_requires=REQUIRES_PYTHON,
     url=URL,
+    packages=['mgm'],
+    package_dir={'mgm': 'src'},
     install_requires=REQUIRED,
     extras_require=EXTRAS,
     #include_package_data=True,

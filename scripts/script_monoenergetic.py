@@ -5,7 +5,8 @@ Created on 2/10/23 4:14 PM
 
 @author: alejandrobertolet
 """
-import mgm
+from src import mgm
+
 yF = 4.0 # microdosimetric quantity for a given beam in kev/um
 
 # DNA damage for a monoenergetic beam

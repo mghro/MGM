@@ -7,7 +7,7 @@ Created on 3/5/23 11:34 AM
 """
 
 # Example of use
-import mgm
+from src import mgm
 
 # Data file, format is 'microdose' (3 columns with energy, specific energy and lineal energy)
 data_file = 'xray_microdosimetry_1um.phsp'
