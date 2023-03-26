@@ -9,6 +9,11 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.stats import poisson, gamma
 
+import matplotlib
+matplotlib.use("Qt5Agg")
+matplotlib.rcParams['font.family'] = 'Helvetica'
+matplotlib.rcParams['font.size'] = 14
+
 class MicrodosimetricGammaModel:
     def __init__(self, pars=None):
         self._BDD = None
@@ -267,18 +272,48 @@ class MicrodosimetryGammaCalculator:
                 self.damages.append([(x, y, z), complexity])
         return self.damages
 
-    def PlotDistributedDamageOverNucleus(self):
+    def PlotDistributedDamageOverNucleus(self, title=None):
         positions = np.array([d[0] for d in self.damages])
+        complexities = np.array([d[1] for d in self.damages])
+
+        # Set up a colormap and normalize the complexities to [0, 1] range
+        cmap = 'plasma'
+        colormap = plt.get_cmap(cmap)
+        norm = plt.Normalize(complexities.min(), complexities.max())
+
         # Plot 3D the positions in a sphere
-        fig = plt.figure()
+        fig = plt.figure(figsize=(8, 8))
         ax = fig.add_subplot(111, projection='3d')
-        ax.scatter(positions[:, 0], positions[:, 1], positions[:, 2])
+
+        for position, complexity in zip(positions, complexities):
+            ax.scatter(position[0], position[1], position[2], s=10 * complexity, c='blue',
+                       alpha=0.6)
+
         # Show a sphere with the radius of the nucleus
         u, v = np.mgrid[0:2 * np.pi:20j, 0:np.pi:10j]
         x = self.radius * np.cos(u) * np.sin(v)
         y = self.radius * np.sin(u) * np.sin(v)
         z = self.radius * np.cos(v)
-        ax.plot_wireframe(x, y, z, color="k", alpha=0.05)
+        ax.plot_wireframe(x, y, z, color="k", alpha=0.25)
+
+        # Create a legend to show complexities as point sizes
+        comps = np.unique(complexities)
+        legend_handles = [plt.scatter([], [], s=10 * c, c='blue', alpha=0.7, label=str(c)) for c in comps]
+        ax.legend(handles=legend_handles, title='Complexity', loc='upper right')
+
+        # Set axis labels and formatting
+        ax.tick_params(axis='both', which='major', labelsize=12, pad=8)
+        ax.grid(False)
+        ax.set_xticks([])
+        ax.set_yticks([])
+        ax.set_zticks([])
+
+        # Add a title
+        if title is None:
+            plt.title('Distribution of Damage over Nucleus', fontsize=18, pad=20)
+        else:
+            plt.title(title, fontsize=14)
+
         plt.show()
 
     def _getZ(self, y, radius):
