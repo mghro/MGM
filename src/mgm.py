@@ -71,21 +71,21 @@ class MicrodosimetricGammaModel:
     def SetFunctionsAndParameters(self, pars=None):
         if pars is None:
             self._BDD = self.linear_func
-            self._BDD_pars = np.array([1.15261696])
+            self._BDD_pars = np.array([1.1438926873102784])
             self._BDI = self.exp_func
-            self._BDI_pars = np.array([9.24573603e+02, 4.20536461e-03])
+            self._BDI_pars = np.array([835.0598386496638, 0.004708596548947047])
             self._SBD = self.linear_func
-            self._SBD_pars = np.array([0.96784241])
+            self._SBD_pars = np.array([0.9578480335391005])
             self._SBI = self.exp_func
-            self._SBI_pars = np.array([1.52868524e+02, 8.72750460e-03])
+            self._SBI_pars = np.array([150.79186867033644, 0.008818172389461304])
             self._N_sites = self.linear_plus_exp_func
-            self._N_sites_pars = np.array([4.20443273e-01, 5.67814904e+02, 1.04384649e-02])
+            self._N_sites_pars = np.array([-2.8802301446631557, 1760.3998493763145, 0.005129474298616052])
             self._N_sites_with_DSB = self.linquad_func
-            self._N_sites_with_DSB_pars = np.array([0.13781355, 0.00060011])
+            self._N_sites_with_DSB_pars = np.array([0.12961848390465075, 0.0009656759528770472])
             self._gamma_par1 = self.quadratic_func
-            self._gamma_par1_pars = np.array([8.65049809e-05, 5.65761513e-03, 1.35721323e+00])
+            self._gamma_par1_pars = np.array([8.413492407157908e-05, 0.007306747718838028, 1.403544707074441])
             self._gamma_par2 = self.quadratic_func
-            self._gamma_par2_pars = np.array([-6.62740411e-05,  1.15279062e-03,  1.55850260e+00])
+            self._gamma_par2_pars = np.array([-6.623202846258205e-05, 0.0014812837684336443, 1.4943128627102855])
         else:
             if 'BDD' in pars:
                 self._BDD = pars['BDD'][0]
